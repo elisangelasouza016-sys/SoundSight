@@ -6,7 +6,7 @@ from io import BytesIO
 import streamlit as st
 from PIL import Image
 from gtts import gTTS
-from openai import OpenAI
+from groq import Groq
 
 
 st.set_page_config(
@@ -15,7 +15,7 @@ st.set_page_config(
     layout="centered"
 )
 
-from groq import Groq
+
 
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
