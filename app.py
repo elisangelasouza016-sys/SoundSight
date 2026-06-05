@@ -1,14 +1,12 @@
 import base64
 import os
 import tempfile
-import requests
+from io import BytesIO
+
 import streamlit as st
 from PIL import Image
 from gtts import gTTS
-
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "llava"
+from openai import OpenAI
 
 
 st.set_page_config(
@@ -17,22 +15,15 @@ st.set_page_config(
     layout="centered"
 )
 
+from groq import Groq
 
-st.markdown("""
-# 👁️ SoundSight
-
-Assistente de visão por IA para descrição sonora de cenas.
-
-Capture uma imagem pela câmera. O sistema descreve a cena em português e gera áudio para auxiliar pessoas com Retinose Pigmentar.
-""")
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 
 def image_to_base64(image: Image.Image) -> str:
-    temp_path = os.path.join(tempfile.gettempdir(), "soundsight_capture.jpg")
-    image.save(temp_path, format="JPEG")
-
-    with open(temp_path, "rb") as file:
-        return base64.b64encode(file.read()).decode("utf-8")
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG")
+    return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
 def describe_scene(image: Image.Image) -> str:
@@ -40,30 +31,40 @@ def describe_scene(image: Image.Image) -> str:
 
     prompt = """
 Descreva a cena da imagem em português do Brasil.
-A descrição deve ser objetiva, curta e útil para uma pessoa com deficiência visual.
+
+A descrição deve ser curta, objetiva e útil para uma pessoa com deficiência visual.
 
 Informe:
-- principais objetos visíveis;
-- posição aproximada dos objetos;
-- possíveis obstáculos;
-- se o caminho parece livre ou bloqueado.
+1. principais objetos visíveis;
+2. posição aproximada dos objetos;
+3. possíveis obstáculos;
+4. se o caminho parece livre ou bloqueado.
 
 Não invente informações que não estejam visíveis.
 Use no máximo 4 frases.
 """
 
-    payload = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "images": [image_b64],
-        "stream": False
-    }
+    completion = client.chat.completions.create(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image_b64}"
+                        },
+                    },
+                ],
+            }
+        ],
+        temperature=0.2,
+        max_completion_tokens=300,
+    )
 
-    response = requests.post(OLLAMA_URL, json=payload, timeout=120)
-    response.raise_for_status()
-
-    data = response.json()
-    return data.get("response", "Não consegui descrever a cena.")
+    return completion.choices[0].message.content
 
 
 def generate_audio(text: str) -> str:
@@ -73,9 +74,17 @@ def generate_audio(text: str) -> str:
     return audio_path
 
 
-st.info("Protótipo acadêmico. Não substitui bengala, cão-guia ou tecnologias assistivas profissionais.")
+st.title("👁️ SoundSight")
+st.write(
+    "Assistente de visão por IA para descrição sonora de cenas. "
+    "Capture uma imagem pela câmera e ouça uma descrição objetiva do ambiente."
+)
 
-camera_image = st.camera_input("📷 Capture uma imagem da cena")
+st.warning(
+    "Protótipo acadêmico. Não substitui bengala, cão-guia ou tecnologias assistivas profissionais."
+)
+
+camera_image = st.camera_input("📷 Capturar imagem pela câmera")
 
 if camera_image:
     image = Image.open(camera_image).convert("RGB")
@@ -91,12 +100,6 @@ if camera_image:
 
                 audio_path = generate_audio(description)
                 st.audio(audio_path, format="audio/mp3", autoplay=True)
-
-            except requests.exceptions.ConnectionError:
-                st.error(
-                    "Não consegui conectar ao Ollama. "
-                    "Verifique se o Ollama está aberto no computador e se o modelo llava foi instalado."
-                )
 
             except Exception as e:
                 st.error(f"Erro ao descrever a cena: {e}")
