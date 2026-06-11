@@ -14,10 +14,10 @@ from streamlit_mic_recorder import mic_recorder
 # CONFIGURAÇÃO DA PÁGINA
 # =========================
 
-st.set_page_config(
-    page_title="SoundSight",
-    page_icon="👁️",
-    layout="centered"
+st.title("👁️ Olhar Amigo")
+st.write(
+    "Assistente de voz para pessoas com baixa visão. "
+    "Aponte a câmera, faça uma pergunta e ouça a descrição do ambiente."
 )
 
 
