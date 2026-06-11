@@ -14,10 +14,10 @@ from streamlit_mic_recorder import mic_recorder
 # CONFIGURAÇÃO DA PÁGINA
 # =========================
 
-st.title("👁️ Olhar Amigo")
-st.write(
-    "Assistente de voz para pessoas com baixa visão. "
-    "Aponte a câmera, faça uma pergunta e ouça a descrição do ambiente."
+st.set_page_config(
+    page_title="Olhar Amigo",
+    page_icon="👁️",
+    layout="centered"
 )
 
 
@@ -173,7 +173,7 @@ def describe_scene(image: Image.Image, user_command: str = "") -> str:
         user_command = "Descreva o ambiente e diga se há obstáculos."
 
     prompt = f"""
-Você é o SoundSight, um assistente de visão para pessoas com baixa visão ou Retinose Pigmentar.
+Você é o Olhar Amigo, um assistente de visão para pessoas com baixa visão ou Retinose Pigmentar.
 
 A pessoa pode ter visão em túnel, dificuldade de enxergar à noite e baixa percepção periférica.
 
@@ -217,7 +217,7 @@ Regras:
 
 
 def generate_audio(text: str) -> str:
-    audio_path = os.path.join(tempfile.gettempdir(), "resposta_soundsight.mp3")
+    audio_path = os.path.join(tempfile.gettempdir(), "resposta_olhar_amigo.mp3")
     tts = gTTS(text=text, lang="pt-br")
     tts.save(audio_path)
     return audio_path
@@ -227,12 +227,17 @@ def generate_audio(text: str) -> str:
 # INTERFACE
 # =========================
 
-st.title("👁️ SoundSight")
+st.title("👁️ Olhar Amigo")
+
+st.write(
+    "Assistente de voz para pessoas com baixa visão. "
+    "Aponte a câmera, faça uma pergunta e ouça a descrição do ambiente."
+)
 
 st.markdown("""
 <div class="main-instruction">
 Aponte a câmera para o ambiente. Depois faça uma pergunta por voz ou toque no botão de análise.
-O SoundSight irá descrever a cena em áudio.
+O Olhar Amigo irá descrever a cena em áudio.
 </div>
 """, unsafe_allow_html=True)
 
@@ -304,7 +309,7 @@ if camera_image:
             try:
                 description = describe_scene(image, user_command)
 
-                st.markdown("### Resposta do SoundSight")
+                st.markdown("### Resposta do Olhar Amigo")
                 st.markdown(
                     f"""
                     <div class="result-box">
