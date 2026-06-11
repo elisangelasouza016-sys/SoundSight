@@ -10,10 +10,6 @@ from groq import Groq
 from streamlit_mic_recorder import mic_recorder
 
 
-# =========================
-# CONFIGURAÇÃO DA PÁGINA
-# =========================
-
 st.set_page_config(
     page_title="Olhar Amigo",
     page_icon="👁️",
@@ -21,24 +17,20 @@ st.set_page_config(
 )
 
 
-# =========================
-# ESTILO ACESSÍVEL
-# =========================
-
 st.markdown("""
 <style>
     html, body, [class*="css"] {
-        font-size: 20px !important;
+        font-size: 22px !important;
     }
 
     .stApp {
-        background: #07111f;
+        background: #06111f;
         color: #f8fafc;
     }
 
     .block-container {
         max-width: 760px;
-        padding-top: 2rem;
+        padding-top: 1.5rem;
         padding-bottom: 4rem;
     }
 
@@ -47,26 +39,61 @@ st.markdown("""
     }
 
     h1 {
-        font-size: 2.5rem !important;
-        line-height: 1.2;
-        margin-bottom: 0.7rem;
+        font-size: 2.7rem !important;
+        line-height: 1.1;
+        margin-bottom: 0.5rem;
     }
 
-    h2, h3 {
-        font-size: 1.6rem !important;
-        margin-top: 1.4rem;
+    h2 {
+        font-size: 1.55rem !important;
+        margin-top: 1.2rem;
+    }
+
+    .subtitle {
+        font-size: 1.15rem;
+        color: #dbeafe !important;
+        margin-bottom: 1rem;
+    }
+
+    .notice {
+        background: #172554;
+        border-left: 10px solid #38bdf8;
+        padding: 18px;
+        border-radius: 18px;
+        font-size: 1.15rem;
+        margin-bottom: 20px;
+    }
+
+    .warning {
+        background: #451a03;
+        border-left: 10px solid #f97316;
+        padding: 18px;
+        border-radius: 18px;
+        font-size: 1.05rem;
+        margin-bottom: 20px;
+    }
+
+    .result-box {
+        background: #022c22;
+        border-left: 10px solid #22c55e;
+        padding: 22px;
+        border-radius: 18px;
+        font-size: 1.25rem;
+        margin-top: 18px;
+        margin-bottom: 18px;
     }
 
     .stButton > button {
         width: 100%;
         min-height: 78px;
-        font-size: 1.4rem !important;
-        font-weight: 800;
-        border-radius: 20px;
+        font-size: 1.3rem !important;
+        font-weight: 900;
+        border-radius: 22px;
         border: 4px solid #ffffff;
         background: #facc15;
         color: #111827 !important;
         box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.25);
+        margin-bottom: 8px;
     }
 
     .stButton > button:hover {
@@ -75,74 +102,32 @@ st.markdown("""
         color: #000000 !important;
     }
 
+    .stCameraInput {
+        border: 3px dashed #38bdf8;
+        border-radius: 22px;
+        padding: 18px;
+        background: rgba(56, 189, 248, 0.10);
+    }
+
     .stTextInput input {
         min-height: 68px;
-        font-size: 1.25rem !important;
+        font-size: 1.2rem !important;
         border-radius: 16px;
         border: 3px solid #38bdf8;
         background: #0f172a;
         color: #ffffff;
     }
 
-    .stCameraInput {
-        border: 3px dashed #38bdf8;
-        border-radius: 20px;
-        padding: 18px;
-        background: rgba(56, 189, 248, 0.10);
-    }
-
-    .stAlert {
-        border-radius: 18px;
-        font-size: 1.1rem;
-    }
-
-    .main-instruction {
-        background: #172554;
-        border-left: 8px solid #38bdf8;
-        padding: 18px;
-        border-radius: 16px;
-        font-size: 1.2rem;
-        margin-bottom: 20px;
-    }
-
-    .danger-box {
-        background: #451a03;
-        border-left: 8px solid #f97316;
-        padding: 18px;
-        border-radius: 16px;
-        font-size: 1.1rem;
-        margin-bottom: 20px;
-    }
-
-    .result-box {
-        background: #022c22;
-        border-left: 8px solid #22c55e;
-        padding: 20px;
-        border-radius: 16px;
-        font-size: 1.25rem;
-        margin-top: 18px;
-        margin-bottom: 18px;
-    }
-
-    .small-note {
+    .small-text {
         font-size: 1rem;
         color: #cbd5e1 !important;
-        margin-bottom: 14px;
     }
 </style>
 """, unsafe_allow_html=True)
 
 
-# =========================
-# CLIENTE GROQ
-# =========================
-
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-
-# =========================
-# FUNÇÕES AUXILIARES
-# =========================
 
 def image_to_base64(image: Image.Image) -> str:
     buffer = BytesIO()
@@ -166,32 +151,31 @@ def transcribe_audio(audio_bytes: bytes) -> str:
     return transcription.text
 
 
-def describe_scene(image: Image.Image, user_command: str = "") -> str:
-    image_b64 = image_to_base64(image)
-
-    if not user_command:
-        user_command = "Descreva o ambiente e diga se há obstáculos."
-
-    prompt = f"""
+def build_prompt(user_command: str) -> str:
+    return f"""
 Você é o Olhar Amigo, um assistente de visão para pessoas com baixa visão ou Retinose Pigmentar.
 
 A pessoa pode ter visão em túnel, dificuldade de enxergar à noite e baixa percepção periférica.
 
-A pergunta ou comando da pessoa foi:
+Pedido da pessoa:
 "{user_command}"
 
 Analise a imagem e responda em português do Brasil.
 
 Regras:
 - Priorize segurança, orientação e bem-estar.
-- Diga primeiro se há obstáculo, risco ou caminho livre.
-- Depois descreva os principais objetos.
+- Se houver obstáculo, risco ou caminho bloqueado, diga isso primeiro.
 - Informe posição aproximada: à frente, à esquerda, à direita, perto ou longe.
 - Use frases curtas.
 - Não invente informações.
-- Responda como se estivesse falando com alguém caminhando ou procurando algo.
+- Responda como se estivesse ajudando alguém na rotina.
 - Use no máximo 4 frases.
 """
+
+
+def describe_scene(image: Image.Image, user_command: str) -> str:
+    image_b64 = image_to_base64(image)
+    prompt = build_prompt(user_command)
 
     completion = client.chat.completions.create(
         model="meta-llama/llama-4-scout-17b-16e-instruct",
@@ -223,107 +207,138 @@ def generate_audio(text: str) -> str:
     return audio_path
 
 
-# =========================
-# INTERFACE
-# =========================
+def analyze_and_speak(image: Image.Image, command: str):
+    with st.spinner("Analisando a cena..."):
+        try:
+            description = describe_scene(image, command)
+
+            st.markdown("### Resposta do Olhar Amigo")
+            st.markdown(
+                f"""
+                <div class="result-box">
+                {description}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            audio_path = generate_audio(description)
+            st.audio(audio_path, format="audio/mp3", autoplay=True)
+
+        except Exception as e:
+            st.error(f"Erro ao analisar a cena: {e}")
+
 
 st.title("👁️ Olhar Amigo")
 
-st.write(
-    "Assistente de voz para pessoas com baixa visão. "
-    "Aponte a câmera, faça uma pergunta e ouça a descrição do ambiente."
+st.markdown(
+    """
+    <div class="subtitle">
+    Assistente de voz para pessoas com baixa visão.
+    Aponte a câmera, escolha uma pergunta e ouça a descrição do ambiente.
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
-st.markdown("""
-<div class="main-instruction">
-Aponte a câmera para o ambiente. Depois faça uma pergunta por voz ou toque no botão de análise.
-O Olhar Amigo irá descrever a cena em áudio.
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<div class="danger-box">
-Protótipo acadêmico. Use como apoio. Não substitui bengala, cão-guia, acompanhamento humano ou orientação profissional.
-</div>
-""", unsafe_allow_html=True)
-
-
-# =========================
-# CAPTURA DA IMAGEM
-# =========================
-
-st.markdown("## 1. Capturar ambiente")
-
-camera_image = st.camera_input("📷 Toque para abrir a câmera")
-
-
-# =========================
-# COMANDO DE VOZ
-# =========================
-
-st.markdown("## 2. Perguntar por voz")
-
-st.markdown("""
-<div class="small-note">
-Exemplos: “Tem obstáculo?”, “O caminho está livre?”, “O que está na minha frente?”, “Descreva a mesa”.
-</div>
-""", unsafe_allow_html=True)
-
-audio = mic_recorder(
-    start_prompt="🎙️ FALAR PERGUNTA",
-    stop_prompt="⏹️ PARAR GRAVAÇÃO",
-    just_once=True,
-    use_container_width=True
+st.markdown(
+    """
+    <div class="notice">
+    Use quando precisar entender o que está à sua frente, procurar objetos ou perceber possíveis obstáculos.
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
-manual_command = st.text_input(
-    "Ou digite sua pergunta:",
-    placeholder="Exemplo: o caminho está livre?"
+st.markdown(
+    """
+    <div class="warning">
+    Protótipo acadêmico. Use como apoio. Não substitui bengala, cão-guia, acompanhamento humano ou orientação profissional.
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 
-# =========================
-# PROCESSAMENTO
-# =========================
+st.markdown("## 1. Aponte a câmera")
+camera_image = st.camera_input("📷 Tirar foto do ambiente")
+
 
 if camera_image:
     image = Image.open(camera_image).convert("RGB")
 
-    st.markdown("## 3. Imagem capturada")
-    st.image(image, caption="Cena capturada pela câmera", use_container_width=True)
+    st.image(image, caption="Imagem capturada", use_container_width=True)
 
-    user_command = manual_command.strip()
+    st.markdown("## 2. Escolha o que deseja saber")
+
+    if st.button("📷 O QUE ESTOU VENDO?"):
+        analyze_and_speak(
+            image,
+            "Descreva a cena geral. Diga o que aparece à minha frente e se há algum obstáculo."
+        )
+
+    if st.button("🚧 TEM OBSTÁCULO?"):
+        analyze_and_speak(
+            image,
+            "Verifique se há obstáculos, riscos de tropeço, objetos no caminho ou algo que possa atrapalhar minha passagem."
+        )
+
+    if st.button("🚶 O CAMINHO ESTÁ LIVRE?"):
+        analyze_and_speak(
+            image,
+            "Diga se o caminho à minha frente parece livre ou bloqueado. Seja direto."
+        )
+
+    if st.button("🔎 O QUE ESTÁ PERTO DE MIM?"):
+        analyze_and_speak(
+            image,
+            "Identifique os objetos mais próximos de mim e diga a posição aproximada deles."
+        )
+
+    if st.button("📖 LEIA O QUE APARECE"):
+        analyze_and_speak(
+            image,
+            "Tente identificar e ler textos visíveis na imagem. Se não houver texto claro, diga que não conseguiu ler."
+        )
+
+    st.markdown("## 3. Ou faça uma pergunta por voz")
+
+    st.markdown(
+        """
+        <div class="small-text">
+        Exemplos: “Onde está a garrafa?”, “Tem cadeira na frente?”, “Há algo no chão?”
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    audio = mic_recorder(
+        start_prompt="🎙️ FALAR PERGUNTA",
+        stop_prompt="⏹️ PARAR GRAVAÇÃO",
+        just_once=True,
+        use_container_width=True
+    )
+
+    manual_command = st.text_input(
+        "Ou digite sua pergunta:",
+        placeholder="Exemplo: há algo no chão?"
+    )
+
+    voice_command = ""
 
     if audio and "bytes" in audio:
-        with st.spinner("Transcrevendo comando de voz..."):
+        with st.spinner("Entendendo sua pergunta..."):
             try:
-                user_command = transcribe_audio(audio["bytes"])
-                st.success(f"Comando reconhecido: {user_command}")
+                voice_command = transcribe_audio(audio["bytes"])
+                st.success(f"Pergunta reconhecida: {voice_command}")
             except Exception as e:
                 st.error(f"Erro ao transcrever áudio: {e}")
 
-    st.markdown("## 4. Análise sonora")
+    final_command = manual_command.strip() or voice_command.strip()
 
-    if st.button("🔊 DESCREVER O AMBIENTE"):
-        with st.spinner("Analisando a cena..."):
-            try:
-                description = describe_scene(image, user_command)
-
-                st.markdown("### Resposta do Olhar Amigo")
-                st.markdown(
-                    f"""
-                    <div class="result-box">
-                    {description}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-                audio_path = generate_audio(description)
-                st.audio(audio_path, format="audio/mp3", autoplay=True)
-
-            except Exception as e:
-                st.error(f"Erro ao analisar a cena: {e}")
+    if final_command:
+        if st.button("🔊 RESPONDER MINHA PERGUNTA"):
+            analyze_and_speak(image, final_command)
 
 else:
-    st.info("Capture uma imagem para iniciar a análise.")
+    st.info("Tire uma foto do ambiente para começar.")
