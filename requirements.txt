@@ -2,3 +2,4 @@ streamlit
 groq
 pillow
 gTTS
+streamlit-mic-recorder
