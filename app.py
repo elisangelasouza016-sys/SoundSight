@@ -10,14 +10,139 @@ from groq import Groq
 from streamlit_mic_recorder import mic_recorder
 
 
+# =========================
+# CONFIGURAÇÃO DA PÁGINA
+# =========================
+
 st.set_page_config(
     page_title="SoundSight",
     page_icon="👁️",
     layout="centered"
 )
 
+
+# =========================
+# ESTILO ACESSÍVEL
+# =========================
+
+st.markdown("""
+<style>
+    html, body, [class*="css"] {
+        font-size: 20px !important;
+    }
+
+    .stApp {
+        background: #07111f;
+        color: #f8fafc;
+    }
+
+    .block-container {
+        max-width: 760px;
+        padding-top: 2rem;
+        padding-bottom: 4rem;
+    }
+
+    h1, h2, h3, p, label, span, div {
+        color: #f8fafc !important;
+    }
+
+    h1 {
+        font-size: 2.5rem !important;
+        line-height: 1.2;
+        margin-bottom: 0.7rem;
+    }
+
+    h2, h3 {
+        font-size: 1.6rem !important;
+        margin-top: 1.4rem;
+    }
+
+    .stButton > button {
+        width: 100%;
+        min-height: 78px;
+        font-size: 1.4rem !important;
+        font-weight: 800;
+        border-radius: 20px;
+        border: 4px solid #ffffff;
+        background: #facc15;
+        color: #111827 !important;
+        box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.25);
+    }
+
+    .stButton > button:hover {
+        background: #fde047;
+        border-color: #38bdf8;
+        color: #000000 !important;
+    }
+
+    .stTextInput input {
+        min-height: 68px;
+        font-size: 1.25rem !important;
+        border-radius: 16px;
+        border: 3px solid #38bdf8;
+        background: #0f172a;
+        color: #ffffff;
+    }
+
+    .stCameraInput {
+        border: 3px dashed #38bdf8;
+        border-radius: 20px;
+        padding: 18px;
+        background: rgba(56, 189, 248, 0.10);
+    }
+
+    .stAlert {
+        border-radius: 18px;
+        font-size: 1.1rem;
+    }
+
+    .main-instruction {
+        background: #172554;
+        border-left: 8px solid #38bdf8;
+        padding: 18px;
+        border-radius: 16px;
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+    }
+
+    .danger-box {
+        background: #451a03;
+        border-left: 8px solid #f97316;
+        padding: 18px;
+        border-radius: 16px;
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+    }
+
+    .result-box {
+        background: #022c22;
+        border-left: 8px solid #22c55e;
+        padding: 20px;
+        border-radius: 16px;
+        font-size: 1.25rem;
+        margin-top: 18px;
+        margin-bottom: 18px;
+    }
+
+    .small-note {
+        font-size: 1rem;
+        color: #cbd5e1 !important;
+        margin-bottom: 14px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================
+# CLIENTE GROQ
+# =========================
+
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
+
+# =========================
+# FUNÇÕES AUXILIARES
+# =========================
 
 def image_to_base64(image: Image.Image) -> str:
     buffer = BytesIO()
@@ -45,23 +170,26 @@ def describe_scene(image: Image.Image, user_command: str = "") -> str:
     image_b64 = image_to_base64(image)
 
     if not user_command:
-        user_command = "Descreva a cena para uma pessoa com deficiência visual."
+        user_command = "Descreva o ambiente e diga se há obstáculos."
 
     prompt = f"""
-Você é o SoundSight, um assistente de visão para pessoas com Retinose Pigmentar.
+Você é o SoundSight, um assistente de visão para pessoas com baixa visão ou Retinose Pigmentar.
 
-A pessoa fez este comando ou pergunta:
+A pessoa pode ter visão em túnel, dificuldade de enxergar à noite e baixa percepção periférica.
+
+A pergunta ou comando da pessoa foi:
 "{user_command}"
 
 Analise a imagem e responda em português do Brasil.
 
 Regras:
-- Seja objetivo.
+- Priorize segurança, orientação e bem-estar.
+- Diga primeiro se há obstáculo, risco ou caminho livre.
+- Depois descreva os principais objetos.
+- Informe posição aproximada: à frente, à esquerda, à direita, perto ou longe.
 - Use frases curtas.
-- Informe objetos importantes, posição aproximada e obstáculos.
-- Se houver risco de colisão, avise.
-- Não invente informações não visíveis.
-- Responda como áudio assistivo, sem enrolação.
+- Não invente informações.
+- Responda como se estivesse falando com alguém caminhando ou procurando algo.
 - Use no máximo 4 frases.
 """
 
@@ -95,39 +223,69 @@ def generate_audio(text: str) -> str:
     return audio_path
 
 
+# =========================
+# INTERFACE
+# =========================
+
 st.title("👁️ SoundSight")
-st.write(
-    "Assistente de visão por IA para pessoas com Retinose Pigmentar. "
-    "Capture uma imagem, faça uma pergunta por voz e receba uma descrição sonora."
-)
 
-st.warning(
-    "Protótipo acadêmico. Não substitui bengala, cão-guia ou tecnologias assistivas profissionais."
-)
+st.markdown("""
+<div class="main-instruction">
+Aponte a câmera para o ambiente. Depois faça uma pergunta por voz ou toque no botão de análise.
+O SoundSight irá descrever a cena em áudio.
+</div>
+""", unsafe_allow_html=True)
 
-st.subheader("1. Capture a cena")
+st.markdown("""
+<div class="danger-box">
+Protótipo acadêmico. Use como apoio. Não substitui bengala, cão-guia, acompanhamento humano ou orientação profissional.
+</div>
+""", unsafe_allow_html=True)
 
-camera_image = st.camera_input("📷 Capturar imagem pela câmera")
 
-st.subheader("2. Faça um comando de voz")
+# =========================
+# CAPTURA DA IMAGEM
+# =========================
 
-st.caption("Exemplos: 'O que tem à minha frente?', 'Tem obstáculo?', 'Descreva a mesa.', 'O caminho está livre?'")
+st.markdown("## 1. Capturar ambiente")
+
+camera_image = st.camera_input("📷 Toque para abrir a câmera")
+
+
+# =========================
+# COMANDO DE VOZ
+# =========================
+
+st.markdown("## 2. Perguntar por voz")
+
+st.markdown("""
+<div class="small-note">
+Exemplos: “Tem obstáculo?”, “O caminho está livre?”, “O que está na minha frente?”, “Descreva a mesa”.
+</div>
+""", unsafe_allow_html=True)
 
 audio = mic_recorder(
-    start_prompt="🎙️ Iniciar gravação",
-    stop_prompt="⏹️ Parar gravação",
+    start_prompt="🎙️ FALAR PERGUNTA",
+    stop_prompt="⏹️ PARAR GRAVAÇÃO",
     just_once=True,
     use_container_width=True
 )
 
 manual_command = st.text_input(
-    "Ou digite o comando manualmente:",
-    placeholder="Exemplo: o que tem à minha frente?"
+    "Ou digite sua pergunta:",
+    placeholder="Exemplo: o caminho está livre?"
 )
+
+
+# =========================
+# PROCESSAMENTO
+# =========================
 
 if camera_image:
     image = Image.open(camera_image).convert("RGB")
-    st.image(image, caption="Imagem capturada", use_container_width=True)
+
+    st.markdown("## 3. Imagem capturada")
+    st.image(image, caption="Cena capturada pela câmera", use_container_width=True)
 
     user_command = manual_command.strip()
 
@@ -139,18 +297,28 @@ if camera_image:
             except Exception as e:
                 st.error(f"Erro ao transcrever áudio: {e}")
 
-    if st.button("🔊 Analisar cena"):
-        with st.spinner("Analisando imagem e comando..."):
+    st.markdown("## 4. Análise sonora")
+
+    if st.button("🔊 DESCREVER O AMBIENTE"):
+        with st.spinner("Analisando a cena..."):
             try:
                 description = describe_scene(image, user_command)
 
-                st.subheader("Resposta do SoundSight")
-                st.success(description)
+                st.markdown("### Resposta do SoundSight")
+                st.markdown(
+                    f"""
+                    <div class="result-box">
+                    {description}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
                 audio_path = generate_audio(description)
                 st.audio(audio_path, format="audio/mp3", autoplay=True)
 
             except Exception as e:
                 st.error(f"Erro ao analisar a cena: {e}")
+
 else:
     st.info("Capture uma imagem para iniciar a análise.")
